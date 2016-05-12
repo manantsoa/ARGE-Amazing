@@ -62,7 +62,7 @@ public class Client {
         ThreadUpdate t = new ThreadUpdate("ThreadUpdate");
         t.start();
 
-        String url = ipRepartiteur + ":" + port + "/request";
+        String url = "http://" + ipRepartiteur + ":" + port + "/request";
         System.out.println(url);
 
         // create configuration
@@ -86,19 +86,21 @@ public class Client {
             j++;
             nbReq = t.getNbReq();
             System.out.println(j + " - Main - nombre de requêtes " + nbReq);
+            Integer result = 0;
 
             for (int i = 0 ; i < nbReq ; i++) {
                 // make the a regular call
 
                 Object[] params = new Object[]
-                        { new Integer(2), new Integer(3) };
-               Integer result = (Integer) client.execute("Calculateur.add", params);
-                System.out.println("Result : " + result);
+                        { new Integer(12), new Integer(3) };
+               result = (Integer) client.execute("Calculateur.add", params);
+
 
                // System.out.println("2 + 3 = " + result);
                 //System.out.println("" + i);
 
             }
+            System.out.println("Result : " + result);
             sleep(1000);
         }
 
