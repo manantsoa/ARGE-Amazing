@@ -5,10 +5,17 @@ import org.apache.xmlrpc.server.PropertyHandlerMapping;
 import org.apache.xmlrpc.server.XmlRpcServer;
 import org.apache.xmlrpc.server.XmlRpcServerConfigImpl;
 import org.apache.xmlrpc.webserver.WebServer;
+import org.openstack4j.api.Builders;
 import org.openstack4j.api.OSClient;
+import org.openstack4j.model.compute.Flavor;
+import org.openstack4j.model.compute.Image;
+import org.openstack4j.model.compute.Server;
+import org.openstack4j.model.compute.ServerCreate;
 import org.openstack4j.openstack.OSFactory;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -70,6 +77,7 @@ public class Repartiteur implements Runnable {
 
         try {
             webServer.start();
+            createVM();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -111,13 +119,28 @@ public class Repartiteur implements Runnable {
     public static OSClient connectToCloud() {
         System.out.print("Connection");
         OSClient os = OSFactory.builder()
-                .endpoint("http://195.0.0.1:5000/v2.0")
+                .endpoint("http://127.0.0.1:5000/v2.0")
                 .credentials("ens18", "LEBWJ1")
                 .tenantName("service").authenticate();
 
 
         System.out.println("Success");
-        System.out.println();
+        System.out.println(os);
+        System.out.println(os.images().list());
         return os;
+    }
+
+    public void createVM() {
+        ServerCreate sc;
+
+//        Image img = os.compute().images().get("");
+        List networksId = Arrays.asList("c1445469-4640-4c5a-ad86-9c0cb6650cca");
+        sc = Builders.server().name("manantsoa-amazing-vm")
+                .flavor("2")
+                .image("490476d1-9fc1-4798-b52e-43bca026a035")
+                .keypairName("mykey")
+                .networks(networksId).build();
+
+        Server server = os.compute().servers().boot(sc);
     }
 }
