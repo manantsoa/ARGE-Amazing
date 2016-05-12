@@ -7,15 +7,13 @@ import org.apache.xmlrpc.server.XmlRpcServerConfigImpl;
 import org.apache.xmlrpc.webserver.WebServer;
 import org.openstack4j.api.Builders;
 import org.openstack4j.api.OSClient;
+import org.openstack4j.model.compute.Address;
 import org.openstack4j.model.compute.Server;
 import org.openstack4j.model.compute.ServerCreate;
 import org.openstack4j.openstack.OSFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by julien on 25/03/16.
@@ -144,6 +142,26 @@ public class Repartiteur implements Runnable {
                 .networks(networksId).build();
 
         Server server = os.compute().servers().boot(sc);
+
+        // Wait for the server creation
+        while ((server = os.compute().servers().get(server.getId())).getStatus() != Server.Status.ACTIVE) {
+            try {
+                System.out.println("EN ATTENTE CONFIRMATION");
+                Thread.sleep(5*1000);
+            } catch (InterruptedException e) {
+            }
+        }
+
+        Map<String, List<? extends Address>> adresses = server.getAddresses().getAddresses();
+        // Get the first IP
+        if (adresses.size() <= 0) {
+            String message = String.format("The created instance=[%s] does not have any IP", server.getName());
+            throw new RuntimeException(message);
+        }
+        // First address
+        Address address = adresses.values().iterator().next().get(0);
+
+        System.out.println("OK = ["+address.getAddr()+"]");
 
         serversId.add(server.getId());
         System.out.println("Creation succeded of " + server.getId());
