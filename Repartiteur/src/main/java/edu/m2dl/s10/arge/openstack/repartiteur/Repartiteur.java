@@ -139,7 +139,7 @@ public class Repartiteur implements Runnable {
         List networksId = Arrays.asList("c1445469-4640-4c5a-ad86-9c0cb6650cca");
         sc = Builders.server().name("manantsoa-node-" + new Date().getTime())
                 .flavor("2")
-                .image("490476d1-9fc1-4798-b52e-43bca026a035")
+                .image("5d112607-9153-4c20-b999-716cca846dc2")
                 .keypairName("mykey")
                 .networks(networksId).build();
 
@@ -152,6 +152,13 @@ public class Repartiteur implements Runnable {
     }
 
     public void deleteVM(String id) {
+        os.compute().servers().delete(id);
+        System.out.println("Deletion succeeded of " + id);
+    }
+
+    public void deleteVM() {
+        String id = serversId.remove(0);
+
         os.compute().servers().delete(id);
         System.out.println("Deletion succeeded of " + id);
     }
