@@ -80,16 +80,21 @@ public class Client {
         // set configuration
         client.setConfig(config);
         t.setNbReq(nbReq);
+        int j = 0;
 
         while (true) {
+            j++;
             nbReq = t.getNbReq();
-            //System.out.println("Main - nombre de requêtes " + nbReq);
+            System.out.println(j + " - Main - nombre de requêtes " + nbReq);
 
             for (int i = 0 ; i < nbReq ; i++) {
                 // make the a regular call
+
                 Object[] params = new Object[]
                         { new Integer(2), new Integer(3) };
-               // Integer result = (Integer) client.execute("Repartiteur.request", params);
+               Integer result = (Integer) client.execute("Calculateur.add", params);
+                System.out.println("Result : " + result);
+
                // System.out.println("2 + 3 = " + result);
                 //System.out.println("" + i);
 
