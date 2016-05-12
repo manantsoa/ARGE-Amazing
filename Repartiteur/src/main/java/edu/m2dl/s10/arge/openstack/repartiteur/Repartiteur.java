@@ -7,16 +7,15 @@ import org.apache.xmlrpc.server.XmlRpcServerConfigImpl;
 import org.apache.xmlrpc.webserver.WebServer;
 import org.openstack4j.api.Builders;
 import org.openstack4j.api.OSClient;
-import org.openstack4j.model.compute.Flavor;
-import org.openstack4j.model.compute.Image;
 import org.openstack4j.model.compute.Server;
 import org.openstack4j.model.compute.ServerCreate;
 import org.openstack4j.openstack.OSFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created by julien on 25/03/16.
@@ -24,6 +23,7 @@ import java.util.Map;
 public class Repartiteur implements Runnable {
 
     private String port;
+    private List<String> serversId;
 
     public static OSClient os;
 
@@ -31,6 +31,7 @@ public class Repartiteur implements Runnable {
         if(args.length != 1) {
             System.out.println("Il faut fournir le numéro du port");
         }
+
 
         String port = args[0];
 
@@ -43,6 +44,7 @@ public class Repartiteur implements Runnable {
 
     public void run() {
 
+        serversId = new ArrayList<String>();
         os = connectToCloud();
         WebServer webServer = new WebServer(Integer.parseInt(port));
 
@@ -77,7 +79,8 @@ public class Repartiteur implements Runnable {
 
         try {
             webServer.start();
-            createVM();
+            String id = addVM();
+            deleteVM(id);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -102,7 +105,6 @@ public class Repartiteur implements Runnable {
 
     public void add(String ip, String port) {
         System.out.println("AJOUTE UN CALCULATEUR ["+ip+":"+port+"]");
-
     }
 
     public void del(String ip, String port) {
@@ -126,21 +128,35 @@ public class Repartiteur implements Runnable {
 
         System.out.println("Success");
         System.out.println(os);
-        System.out.println(os.images().list());
+//        System.out.println(os.images().list());
         return os;
     }
 
-    public void createVM() {
+    public String addVM() {
         ServerCreate sc;
 
-//        Image img = os.compute().images().get("");
+//      Image img = os.compute().images().get("");
         List networksId = Arrays.asList("c1445469-4640-4c5a-ad86-9c0cb6650cca");
-        sc = Builders.server().name("manantsoa-amazing-vm")
+        sc = Builders.server().name("manantsoa-node-" + new Date().getTime())
                 .flavor("2")
                 .image("490476d1-9fc1-4798-b52e-43bca026a035")
                 .keypairName("mykey")
                 .networks(networksId).build();
 
         Server server = os.compute().servers().boot(sc);
+
+        serversId.add(server.getId());
+        System.out.println("Creation succeded of " + server.getId());
+
+        return server.getId();
+    }
+
+    public void deleteVM(String id) {
+        os.compute().servers().delete(id);
+        System.out.println("Deletion succeeded of " + id);
+    }
+
+    public void printVM() {
+        System.out.println();
     }
 }
