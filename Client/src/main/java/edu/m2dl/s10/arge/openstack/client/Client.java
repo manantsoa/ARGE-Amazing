@@ -92,8 +92,8 @@ public class Client {
                 // make the a regular call
 
                 Object[] params = new Object[]
-                        { new Integer(12), new Integer(3) };
-               result = (Integer) client.execute("Calculateur.add", params);
+                        { new String("calcul_fibonacci"), new Integer(4) };
+               result = (Integer) client.execute("Repartiteur.request", params);
 
 
                // System.out.println("2 + 3 = " + result);
