@@ -1,5 +1,6 @@
 package edu.m2dl.s10.arge.openstack.repartiteur;
 
+import edu.m2dl.s10.arge.openstack.calculateur.Calculateur;
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.client.XmlRpcClient;
 import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
@@ -16,8 +17,10 @@ import org.openstack4j.model.compute.ServerCreate;
 import org.openstack4j.openstack.OSFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.channels.FileLock;
 import java.util.*;
 
 /**
@@ -25,9 +28,10 @@ import java.util.*;
  */
 public class Repartiteur implements Runnable {
 
-    private String port;
-    private List<String> serversId;
+    private static String port;
+    private final static String portCalculateur = "8080";
     private static List<ComputerNode> calculateurs;
+    private static boolean firstCall;
 
     public static OSClient os;
 
@@ -48,9 +52,9 @@ public class Repartiteur implements Runnable {
 
     public void run() {
 
-        serversId = new ArrayList<String>();
         calculateurs = new ArrayList<ComputerNode>();
         os = connectToCloud();
+        firstCall = false;
         WebServer webServer = new WebServer(Integer.parseInt(port));
 
         XmlRpcServer xmlRpcServer = webServer.getXmlRpcServer();
@@ -61,6 +65,7 @@ public class Repartiteur implements Runnable {
            *   Calculator=org.apache.xmlrpc.demo.Calculator
            *   org.apache.xmlrpc.demo.proxy.Adder=org.apache.xmlrpc.demo.proxy.AdderImpl
            */
+
         try {
             phm.addHandler("Repartiteur", Repartiteur.class);
             System.out.println("Lancement du serveur sur le port " + port);
@@ -84,74 +89,46 @@ public class Repartiteur implements Runnable {
 
         try {
             webServer.start();
-            ComputerNode newWorker = addVM();
+            ComputerNode newWorker = addVM();//Ajout d'un calculateur au lancement
             calculateurs.add(newWorker);
-//            deleteVM(newWorker);
         } catch (IOException e) {
             e.printStackTrace();
-        }
-
-
-        while(true) {
-
-
-
-            // Serveur : Récupérer les requetes de l'updateRepartiteur
-
-
-            // Client : Contacter les Calculateur
-
         }
 
     }
 
     public Repartiteur(String port) {
-        this.port = port;
+        Repartiteur.port = port;
     }
 
     public Repartiteur() {
-        this.port = "8080";
         if(calculateurs == null) {
             calculateurs = new ArrayList<ComputerNode>();
         }
     }
 
-    public Integer request(String method, int nb) {
-        Integer result = null;
+    public BigInteger request(String method, int nb) throws InterruptedException {
+        BigInteger result = null;
+        boolean fullLoad = true;
+
+        if(!firstCall) {
+            System.out.println("CONNEXION AU CALCULATEUR EN COURS...");
+            Thread.sleep(5000);
+            firstCall = true;
+        }
 
         // Appel du client
         System.out.print("REDIRIGE LA REQUETE VERS LE CALCULATEUR ");
 
-        //Récupération IP calculateur
-        String ipWorker = calculateurs.get(0).getIp();
+        //Récupération calculateur
+        ComputerNode worker = getVM();
+        System.out.println(worker.getIp());
 
-        System.out.println(ipWorker);
-
-        String url = "http://" + ipWorker + ":" + port + "/request";
+        Object[] params = new Object[] {nb};
 
 
-        // create configuration
-        XmlRpcClientConfigImpl config = new XmlRpcClientConfigImpl();
         try {
-            config.setServerURL(new URL(url));
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
-        config.setEnabledForExtensions(true);
-        config.setConnectionTimeout(60 * 1000);
-        config.setReplyTimeout(60 * 1000);
-
-        XmlRpcClient client = new XmlRpcClient();
-
-        // use Commons HttpClient as transport
-        client.setTransportFactory(
-                new XmlRpcCommonsTransportFactory(client));
-        // set configuration
-        client.setConfig(config);
-
-        Object[] params = new Object[] { nb};
-        try {
-            result = (Integer) client.execute(method, params);
+            result = (BigInteger) worker.getClient().execute("Calculateur." + method, params);
             System.out.println(result);
         } catch (XmlRpcException e) {
             e.printStackTrace();
@@ -163,14 +140,13 @@ public class Repartiteur implements Runnable {
     public static OSClient connectToCloud() {
         System.out.println("Connection...");
         OSClient os = OSFactory.builder()
-                .endpoint("http://127.0.0.1:5000/v2.0")
+                .endpoint("http://195.220.53.61:5000/v2.0")
                 .credentials("ens18", "LEBWJ1")
                 .tenantName("service").authenticate();
 
 
         System.out.println("Success");
         System.out.println(os);
-//        System.out.println(os.images().list());
         return os;
     }
 
@@ -180,7 +156,7 @@ public class Repartiteur implements Runnable {
         List networksId = Arrays.asList("c1445469-4640-4c5a-ad86-9c0cb6650cca");
         sc = Builders.server().name("manantsoa-node-" + new Date().getTime())
                 .flavor("2")
-                .image("0f8f1ff6-7cbb-43b7-992c-927a393d75d1")
+                .image("4b10554f-020f-4117-82d1-21c7bb5ef46e")
                 .keypairName("mykey")
                 .networks(networksId).build();
 
@@ -223,10 +199,47 @@ public class Repartiteur implements Runnable {
     }
 
     public void deleteVM() {
-        String id = serversId.remove(0);
+        String id = calculateurs.get(0).getId();
 
         os.compute().servers().delete(id);
         System.out.println("Deletion succeeded of " + id);
+    }
+
+    public ComputerNode getVM() {
+        ComputerNode node = null;
+        boolean notChecked = true;
+        int i = 0; //index de la vm à recuperer
+
+        //Tant que Calculateur non trouvé
+        while (notChecked) {
+            node = calculateurs.get(i);
+            String ipc = node.getIp();
+            String portc = node.getPort();
+            String urlc = "http://" + ipc + ":" + portc + "/request";
+
+            Object[] params = new Object[] {};
+            double cpuLoad = 0;
+
+            try {
+                cpuLoad = (Double) node.getClient().execute("Calculateur.CPULoad", params);
+                System.out.println("Charge CPU de " + node.getIp() + " : " + cpuLoad);
+            } catch (XmlRpcException e) {
+                e.printStackTrace();
+            }
+
+            if (cpuLoad > 0.7) {
+                if (calculateurs.size() == (i + 1)) {
+                    //s'il n'y a pas d'autres calculateurs
+                    node = addVM();
+                    calculateurs.add(node);
+                } else {
+                    i++;
+                }
+            } else {
+                notChecked = false;
+            }
+        }
+        return node;
     }
 
 }

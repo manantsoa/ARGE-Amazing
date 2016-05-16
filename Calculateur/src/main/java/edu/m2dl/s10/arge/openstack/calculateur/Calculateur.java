@@ -1,12 +1,16 @@
 package edu.m2dl.s10.arge.openstack.calculateur;
 
+import com.sun.management.OperatingSystemMXBean;
 import org.apache.xmlrpc.XmlRpcException;
 import org.apache.xmlrpc.server.PropertyHandlerMapping;
 import org.apache.xmlrpc.server.XmlRpcServer;
 import org.apache.xmlrpc.server.XmlRpcServerConfigImpl;
 import org.apache.xmlrpc.webserver.WebServer;
 
+import javax.management.MBeanServerConnection;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.math.BigInteger;
 
 public class Calculateur {
 
@@ -18,6 +22,16 @@ public class Calculateur {
         //System.out.println("\nCalcul " + i1 + " = " + res + "\n");
 
         return res;
+    }
+
+    public BigInteger factorielle(int n) {
+        BigInteger produit = BigInteger.ONE;
+        BigInteger mul = BigInteger.ONE;
+        for (int i = 1; i <= n; i++ , mul = mul.add(BigInteger.ONE))
+            produit = produit.multiply(mul);
+
+        System.out.println(produit);
+        return produit;
     }
 
     private static int calcul_fibonacci(int nombre)
@@ -32,6 +46,7 @@ public class Calculateur {
             term2 = term3;
         }
 
+        System.out.println(term3);
         return term3;
 
     }
@@ -70,5 +85,23 @@ public class Calculateur {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public Double CPULoad() {
+        MBeanServerConnection mbsc = ManagementFactory.getPlatformMBeanServer();
+
+        OperatingSystemMXBean osMBean = null;
+        try {
+            osMBean = ManagementFactory.newPlatformMXBeanProxy(
+                    mbsc, ManagementFactory.OPERATING_SYSTEM_MXBEAN_NAME, OperatingSystemMXBean.class);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        double cpuLoad = osMBean.getSystemCpuLoad();
+        System.out.println(cpuLoad);
+
+
+        return cpuLoad;
     }
 }

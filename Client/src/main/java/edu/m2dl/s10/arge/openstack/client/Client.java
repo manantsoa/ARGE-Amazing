@@ -5,6 +5,7 @@ import org.apache.xmlrpc.client.XmlRpcClientConfigImpl;
 import org.apache.xmlrpc.client.XmlRpcCommonsTransportFactory;
 import org.apache.xmlrpc.webserver.ServletWebServer;
 
+import java.math.BigInteger;
 import java.net.URL;
 
 import static java.lang.Thread.sleep;
@@ -86,21 +87,18 @@ public class Client {
             j++;
             nbReq = t.getNbReq();
             System.out.println(j + " - Main - nombre de requêtes " + nbReq);
-            Integer result = 0;
+            BigInteger result = BigInteger.ZERO;
 
             for (int i = 0 ; i < nbReq ; i++) {
                 // make the a regular call
 
                 Object[] params = new Object[]
-                        { new String("calcul_fibonacci"), new Integer(4) };
-               result = (Integer) client.execute("Repartiteur.request", params);
+                        { new String("factorielle"), new Integer(j % 50) };
+               result = (BigInteger) client.execute("Repartiteur.request", params);
 
-
-               // System.out.println("2 + 3 = " + result);
-                //System.out.println("" + i);
 
             }
-            System.out.println("Result : " + result);
+            System.out.println("Factorielle de " + j%50 +" : "+ result);
             sleep(1000);
         }
 
