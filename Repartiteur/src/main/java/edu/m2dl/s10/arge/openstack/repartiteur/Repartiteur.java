@@ -106,10 +106,11 @@ public class Repartiteur implements Runnable {
         }
 
         // Appel du client
-        System.out.print("REDIRIGE LA REQUETE VERS LE CALCULATEUR ");
+
 
         //Récupération calculateur
         ComputerNode worker = getVM();
+        System.out.print("REDIRIGE LA REQUETE VERS LE CALCULATEUR ");
         System.out.println(worker.getIp());
 
         Object[] params = new Object[] {nb};
@@ -121,6 +122,8 @@ public class Repartiteur implements Runnable {
         } catch (XmlRpcException e) {
             e.printStackTrace();
         }
+
+        cleanVM();
 
         return result;
     }
@@ -232,7 +235,31 @@ public class Repartiteur implements Runnable {
     }
 
     public void cleanVM() {
+        int i = 0; //index de la vm à recuperer
+        ComputerNode node = null;
+        System.out.println("Analyse VM...");
 
+        for (i = 0; i < calculateurs.size(); i++) {
+            node = calculateurs.get(i);
+            String ipc = node.getIp();
+            String portc = node.getPort();
+            String urlc = "http://" + ipc + ":" + portc + "/request";
+
+            Object[] params = new Object[] {};
+            double cpuLoad = 0;
+
+            try {
+                cpuLoad = (Double) node.getClient().execute("Calculateur.CPULoad", params);
+            } catch (XmlRpcException e) {
+                e.printStackTrace();
+            }
+
+            if (cpuLoad == 0 && calculateurs.size() > 1) {
+                System.out.println("VM Supprimée : " + node.getIp());
+                calculateurs.remove(i);
+                deleteVM(node);
+            }
+        }
     }
 
 }
