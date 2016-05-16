@@ -53,18 +53,13 @@ public class Repartiteur implements Runnable {
     public void run() {
 
         calculateurs = new ArrayList<ComputerNode>();
-        os = connectToCloud();
+        //os = connectToCloud();
         firstCall = false;
         WebServer webServer = new WebServer(Integer.parseInt(port));
 
         XmlRpcServer xmlRpcServer = webServer.getXmlRpcServer();
 
         PropertyHandlerMapping phm = new PropertyHandlerMapping();
-          /* Load handler definitions from a property file.
-           * The property file might look like:
-           *   Calculator=org.apache.xmlrpc.demo.Calculator
-           *   org.apache.xmlrpc.demo.proxy.Adder=org.apache.xmlrpc.demo.proxy.AdderImpl
-           */
 
         try {
             phm.addHandler("Repartiteur", Repartiteur.class);
@@ -73,13 +68,6 @@ public class Repartiteur implements Runnable {
             e.printStackTrace();
         }
 
-          /* You may also provide the handler classes directly,
-           * like this:
-           * phm.addHandler("Calculator",
-           *     org.apache.xmlrpc.demo.Calculator.class);
-           * phm.addHandler(org.apache.xmlrpc.demo.proxy.Adder.class.getName(),
-           *     org.apache.xmlrpc.demo.proxy.AdderImpl.class);
-           */
         xmlRpcServer.setHandlerMapping(phm);
 
         XmlRpcServerConfigImpl serverConfig =
@@ -144,7 +132,6 @@ public class Repartiteur implements Runnable {
                 .credentials("ens18", "LEBWJ1")
                 .tenantName("service").authenticate();
 
-
         System.out.println("Success");
         System.out.println(os);
         return os;
@@ -152,6 +139,8 @@ public class Repartiteur implements Runnable {
 
     public ComputerNode addVM() {
         ServerCreate sc;
+
+        os = connectToCloud();
 
         List networksId = Arrays.asList("c1445469-4640-4c5a-ad86-9c0cb6650cca");
         sc = Builders.server().name("manantsoa-node-" + new Date().getTime())
@@ -240,6 +229,10 @@ public class Repartiteur implements Runnable {
             }
         }
         return node;
+    }
+
+    public void cleanVM() {
+
     }
 
 }
